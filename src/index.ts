@@ -1,7 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import Pino from 'pino-http';
-import favicon from 'express-favicon';
 import { status, TaskReq } from './models/task';
 import {
   createTask,
@@ -11,13 +10,13 @@ import {
   updateTaskById,
   createDefaultTable,
 } from './queries';
+import path from 'path';
 
 const app = express();
 const logger = Pino({
   level: 'info',
 });
 
-app.use(favicon(__dirname + '/public/favicon.png'));
 app.use(cors());
 app.use(logger);
 app.use(express.json());
@@ -26,16 +25,14 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5174;
 
 createDefaultTable();
 
+app.use(express.static(path.join(__dirname, '../dist')));
+
 app.get('/', (_req, res) => {
-  res.send('Hello World');
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
-app.get('/ping', (_req, res) => {
-  console.log('pinged here');
-  res.send('pong');
-});
 
-app.post('/', async (req, res, next) => {
+app.post('/api', async (req, res, next) => {
   const { title, description } = req.body as TaskReq;
   try {
     const result = await createTask(title, description, status.toDo);
@@ -45,7 +42,7 @@ app.post('/', async (req, res, next) => {
   }
 });
 
-app.get('/tasks', async (_req, res, next) => {
+app.get('/api/tasks', async (_req, res, next) => {
   try {
     const result = await getAllTasks();
     return res.status(200).json({ result });
@@ -54,7 +51,7 @@ app.get('/tasks', async (_req, res, next) => {
   }
 });
 
-app.get('/:id', async (req, res, next) => {
+app.get('/api/:id', async (req, res, next) => {
   try {
     const taskId = req.params.id;
     const result = await getTaskById(taskId);
@@ -64,7 +61,7 @@ app.get('/:id', async (req, res, next) => {
   }
 });
 
-app.delete('/:id', async (req, res, next) => {
+app.delete('/api/:id', async (req, res, next) => {
   try {
     const taskId = req.params.id;
     await deleteTaskById(taskId);
@@ -75,7 +72,7 @@ app.delete('/:id', async (req, res, next) => {
   }
 });
 
-app.put('/:id/:method', async (req, res, next) => {
+app.put('/api/:id/:method', async (req, res, next) => {
   try {
     const taskId = req.params.id;
     const method = req.params.method;
